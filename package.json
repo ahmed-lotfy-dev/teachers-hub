@@ -1,0 +1,22 @@
+{
+  "name": "teachers-hub",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.2.20",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:backend": "bun run --filter backend dev",
+    "dev:frontend": "bun run --filter frontend dev",
+    "build": "bun run --filter '*' build",
+    "build:backend": "bun run --filter backend build",
+    "build:frontend": "bun run --filter frontend build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "typecheck:backend": "bun run --filter backend typecheck",
+    "typecheck:frontend": "bun run --filter frontend typecheck",
+    "clean": "bun run --filter '*' clean"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "workspace": {
+    "name": "Teachers Hub",
+    "description": "Product and engineering workspace for Teachers Hub MVP"
+  },
+  "board": {
+    "name": "Teachers Hub MVP",
+    "description": "Teacher-first MVP delivery board"
+  },
+  "lists": [
+    "Backlog",
+    "Ready",
+    "In Progress",
+    "Review",
+    "Done"
+  ],
+  "cards": [
+    { "title": "Teacher first sign-in with school affiliation", "list": "Backlog", "priority": "P0", "story": "T1" },
+    { "title": "Select verified school from directory", "list": "Backlog", "priority": "P0", "story": "T1" },
+    { "title": "Submit new school for manual verification", "list": "Backlog", "priority": "P0", "story": "T1" },
+    { "title": "Capture teacher grade levels (KG to all grades)", "list": "Backlog", "priority": "P0", "story": "T2" },
+    { "title": "Create class with name and grade", "list": "Backlog", "priority": "P0", "story": "T3" },
+    { "title": "Manual student roster add", "list": "Backlog", "priority": "P0", "story": "T4" },
+    { "title": "CSV import for student roster", "list": "Backlog", "priority": "P0", "story": "T4" },
+    { "title": "Generate reusable invite links with expiry", "list": "Backlog", "priority": "P0", "story": "T5" },
+    { "title": "Resend and regenerate invite links", "list": "Backlog", "priority": "P0", "story": "T5" },
+    { "title": "Manual WhatsApp share action", "list": "Backlog", "priority": "P0", "story": "T6" },
+    { "title": "Student claim via invite + email OTP", "list": "Backlog", "priority": "P0", "story": "S1" },
+    { "title": "Auto-assign claimed student to class", "list": "Backlog", "priority": "P0", "story": "S1" },
+    { "title": "Create tests/quizzes with schedule and score settings", "list": "Backlog", "priority": "P0", "story": "T7" },
+    { "title": "Student test start and submit flow", "list": "Backlog", "priority": "P0", "story": "S2" },
+    { "title": "Teacher live participation monitor states", "list": "Backlog", "priority": "P0", "story": "T8" },
+    { "title": "WebSocket event pipeline for live test activity", "list": "Backlog", "priority": "P0", "story": "T8" },
+    { "title": "Polling fallback for live monitor", "list": "Backlog", "priority": "P1", "story": "T8" },
+    { "title": "Grade entry for submitted tests", "list": "Backlog", "priority": "P0", "story": "T9" },
+    { "title": "Two-step grade publish confirmation", "list": "Backlog", "priority": "P0", "story": "T9" },
+    { "title": "Results visible only after publish", "list": "Backlog", "priority": "P0", "story": "S3" },
+    { "title": "Audit log for grade publish and edits", "list": "Backlog", "priority": "P0", "story": "T9" },
+    { "title": "Tenant context middleware and school-scoped auth", "list": "Backlog", "priority": "P0", "story": "FOUNDATION" },
+    { "title": "School verification admin queue", "list": "Backlog", "priority": "P1", "story": "FOUNDATION" }
+  ]
+}

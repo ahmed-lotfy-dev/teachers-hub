@@ -1,6 +1,6 @@
 # Teachers Hub Monorepo
 
-This repository uses Turborepo with Bun workspaces.
+This repository uses Bun workspaces (no Turborepo).
 
 ## Apps
 - `apps/backend`: Bun + Elysia backend scaffold
