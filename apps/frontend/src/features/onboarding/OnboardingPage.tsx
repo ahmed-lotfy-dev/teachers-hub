@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { getAuthSession } from '../auth/session'
 import type { School } from '../auth/types'
 import { appShellClass } from '../../ui/layout'
 import { createSchool, saveTeacherOnboarding, searchSchools } from './api'
@@ -26,7 +26,7 @@ type OnboardingFormValues = z.infer<typeof onboardingSchema>
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const session = getSession()
+  const [hasSession, setHasSession] = useState<boolean | null>(null)
   const [schoolQuery, setSchoolQuery] = useState('')
   const [schools, setSchools] = useState<School[]>([])
   const form = useForm<OnboardingFormValues>({
@@ -38,6 +38,26 @@ export function OnboardingPage() {
       newSchoolName: '',
     },
   })
+  const selectedSchoolId = useWatch({
+    control: form.control,
+    name: 'selectedSchoolId',
+  })
+
+  useEffect(() => {
+    getAuthSession()
+      .then((session) => {
+        setHasSession(!!session)
+      })
+      .catch(() => {
+        setHasSession(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    if (hasSession === false) {
+      navigate('/signin', { replace: true })
+    }
+  }, [hasSession, navigate])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -56,13 +76,21 @@ export function OnboardingPage() {
     }
   }, [schoolQuery])
 
-  if (!session) return <Navigate to="/signin" replace />
-  const sessionUserId = session.userId
+  if (hasSession === null) {
+    return (
+      <div className={appShellClass()}>
+        <main className="mx-auto w-full max-w-7xl px-4 py-8">
+          <p className="font-semibold text-slate-700">Checking session...</p>
+        </main>
+      </div>
+    )
+  }
+
+  if (!hasSession) return <Navigate to="/signin" replace />
 
   async function createSchoolIfNeeded(name?: string): Promise<string | undefined> {
     if (!name?.trim()) return undefined
     const school = await createSchool({
-      userId: sessionUserId,
       name: name.trim(),
     })
     return school.id
@@ -74,7 +102,6 @@ export function OnboardingPage() {
     try {
       const schoolIdFromCreate = await createSchoolIfNeeded(values.newSchoolName)
       await saveTeacherOnboarding({
-        userId: sessionUserId,
         displayName: values.displayName.trim(),
         gradeLevels: values.gradeLevels,
         schoolId: (schoolIdFromCreate ?? values.selectedSchoolId) || undefined,
@@ -179,7 +206,7 @@ export function OnboardingPage() {
                           <input
                             type="radio"
                             name="school"
-                            checked={form.watch('selectedSchoolId') === school.id}
+                            checked={selectedSchoolId === school.id}
                             onChange={() => {
                               form.setValue('selectedSchoolId', school.id)
                               form.setValue('newSchoolName', '')

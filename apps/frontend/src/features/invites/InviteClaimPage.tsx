@@ -21,9 +21,11 @@ type ClaimFormValues = z.infer<typeof claimSchema>
 export function InviteClaimPage() {
   const navigate = useNavigate()
   const { token } = useParams<{ token: string }>()
-  const [loadingInvite, setLoadingInvite] = useState(true)
+  const [loadingInvite, setLoadingInvite] = useState(Boolean(token))
   const [inviteValid, setInviteValid] = useState(false)
-  const [inviteReason, setInviteReason] = useState<string | null>(null)
+  const [inviteReason, setInviteReason] = useState<string | null>(
+    token ? null : 'Invite token is missing.',
+  )
   const [inviteStudentName, setInviteStudentName] = useState<string | null>(null)
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null)
 
@@ -37,12 +39,7 @@ export function InviteClaimPage() {
   })
 
   useEffect(() => {
-    if (!token) {
-      setInviteValid(false)
-      setInviteReason('Invite token is missing.')
-      setLoadingInvite(false)
-      return
-    }
+    if (!token) return
 
     fetchInviteByToken(token)
       .then((result) => {

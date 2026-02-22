@@ -8,12 +8,12 @@ import {
   workspaceLearners,
   workspaces,
 } from "../db/workspace-schema";
+import { requireAuthSession } from "../lib/auth-session";
 
 const actorTypeSchema = z.enum(["student", "parent"]);
 
 const createInviteBodySchema = z.object({
   workspaceId: z.string().min(1),
-  teacherUserId: z.string().min(1),
   studentName: z.string().min(1).max(120).optional(),
   expiresInDays: z.number().int().min(1).max(30).optional(),
 });
@@ -39,7 +39,10 @@ function normalizeEmail(email: string): string {
 }
 
 export const inviteRoutes = new Elysia({ prefix: "/api/invites" })
-  .post("/", async ({ body, set }) => {
+  .post("/", async ({ body, set, request }) => {
+    const actor = await requireAuthSession({ request, set });
+    if (!actor) return { error: "Unauthorized" };
+
     const parsedBody = createInviteBodySchema.safeParse(body);
     if (!parsedBody.success) {
       set.status = 400;
@@ -53,7 +56,7 @@ export const inviteRoutes = new Elysia({ prefix: "/api/invites" })
       .where(
         and(
           eq(workspaces.id, payload.workspaceId),
-          eq(workspaces.ownerUserId, payload.teacherUserId),
+          eq(workspaces.ownerUserId, actor.userId),
         ),
       )
       .limit(1);
@@ -73,7 +76,7 @@ export const inviteRoutes = new Elysia({ prefix: "/api/invites" })
         id: inviteId,
         token,
         workspaceId: payload.workspaceId,
-        createdByUserId: payload.teacherUserId,
+        createdByUserId: actor.userId,
         studentName: payload.studentName?.trim() || null,
         expiresAt,
       })

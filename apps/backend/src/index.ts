@@ -10,6 +10,7 @@ import { securityHeaders } from "./middleware/security-headers";
 import { onboardingRoutes } from "./routes/onboarding";
 import { inviteRoutes } from "./routes/invites";
 import { testRoutes } from "./routes/tests";
+import { teamsIntegrationRoutes } from "./routes/integrations-teams";
 
 const app = new Elysia()
   .use(logger)
@@ -48,6 +49,7 @@ const app = new Elysia()
   .use(onboardingRoutes)
   .use(inviteRoutes)
   .use(testRoutes)
+  .use(teamsIntegrationRoutes)
   .get("/health", () => ({ status: "ok" }))
   .get("/", () => "Teachers Hub backend running")
   .use(mcpPlugin)

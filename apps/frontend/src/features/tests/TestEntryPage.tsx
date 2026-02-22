@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -22,7 +22,7 @@ export function TestEntryPage() {
     return { workspaceId, learnerId, actorType }
   }, [workspaceId, learnerId, actorType])
 
-  async function loadTests() {
+  const loadTests = useCallback(async () => {
     if (!queryContext) {
       setError('Missing workspace or learner context.')
       setLoading(false)
@@ -39,11 +39,11 @@ export function TestEntryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [queryContext])
 
   useEffect(() => {
     void loadTests()
-  }, [queryContext])
+  }, [loadTests])
 
   async function handleStart(testId: string) {
     if (!queryContext) return

@@ -3,6 +3,7 @@ import { and, asc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/db";
 import { schools, teacherProfiles, workspaces } from "../db/workspace-schema";
+import { requireAuthSession } from "../lib/auth-session";
 
 function normalizeSchoolName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
@@ -18,26 +19,16 @@ const schoolsQuerySchema = z.object({
 });
 
 const createSchoolBodySchema = z.object({
-  userId: z.string().min(1),
   name: z.string().min(2).max(120),
   city: z.string().min(2).max(80).optional(),
   country: z.string().min(2).max(80).optional(),
 });
 
 const saveTeacherBodySchema = z.object({
-  userId: z.string().min(1),
   displayName: z.string().min(2).max(120),
   gradeLevels: z.array(z.string().min(1).max(40)).min(1).max(30),
   schoolId: z.string().min(1).optional(),
   schoolName: z.string().min(2).max(120).optional(),
-});
-
-const teacherParamsSchema = z.object({
-  userId: z.string().min(1),
-});
-
-const teacherQuerySchema = z.object({
-  workspaceId: z.string().min(1).optional(),
 });
 
 export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
@@ -80,7 +71,10 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
   )
   .post(
     "/schools",
-    async ({ body, set }) => {
+    async ({ body, set, request }) => {
+      const actor = await requireAuthSession({ request, set });
+      if (!actor) return { error: "Unauthorized" };
+
       const parsedBody = createSchoolBodySchema.safeParse(body);
       if (!parsedBody.success) {
         set.status = 400;
@@ -112,7 +106,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
           normalizedName,
           city: parsedBody.data.city?.trim() || null,
           country: parsedBody.data.country?.trim() || null,
-          createdByUserId: parsedBody.data.userId,
+          createdByUserId: actor.userId,
         })
         .returning({
           id: schools.id,
@@ -126,7 +120,10 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
   )
   .post(
     "/teacher",
-    async ({ body, set }) => {
+    async ({ body, set, request }) => {
+      const actor = await requireAuthSession({ request, set });
+      if (!actor) return { error: "Unauthorized" };
+
       const parsedBody = saveTeacherBodySchema.safeParse(body);
       if (!parsedBody.success) {
         set.status = 400;
@@ -154,7 +151,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
             normalizedName,
             city: null,
             country: null,
-            createdByUserId: payload.userId,
+            createdByUserId: actor.userId,
           });
           selectedSchoolId = schoolId;
         }
@@ -175,7 +172,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
       const existingWorkspace = await db
         .select({ id: workspaces.id })
         .from(workspaces)
-        .where(eq(workspaces.ownerUserId, payload.userId))
+        .where(eq(workspaces.ownerUserId, actor.userId))
         .limit(1);
 
       const workspaceId =
@@ -188,7 +185,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
       if (existingWorkspace.length === 0) {
         await db.insert(workspaces).values({
           id: workspaceId,
-          ownerUserId: payload.userId,
+          ownerUserId: actor.userId,
           type: "teacher",
           name: buildWorkspaceName(payload.displayName),
         });
@@ -197,7 +194,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
       await db
         .insert(teacherProfiles)
         .values({
-          userId: payload.userId,
+          userId: actor.userId,
           workspaceId,
           displayName: payload.displayName.trim(),
           schoolId: selectedSchoolId,
@@ -226,25 +223,17 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
           onboardedAt: teacherProfiles.onboardedAt,
         })
         .from(teacherProfiles)
-        .where(eq(teacherProfiles.userId, payload.userId))
+        .where(eq(teacherProfiles.userId, actor.userId))
         .limit(1);
 
       return { profile: profile[0] };
     }
   )
   .get(
-    "/teacher/:userId",
-    async ({ params, query, set }) => {
-      const parsedParams = teacherParamsSchema.safeParse(params);
-      if (!parsedParams.success) {
-        set.status = 400;
-        return { error: z.treeifyError(parsedParams.error) };
-      }
-      const parsedQuery = teacherQuerySchema.safeParse(query);
-      if (!parsedQuery.success) {
-        set.status = 400;
-        return { error: z.treeifyError(parsedQuery.error) };
-      }
+    "/teacher/me",
+    async ({ set, request }) => {
+      const actor = await requireAuthSession({ request, set });
+      if (!actor) return { error: "Unauthorized" };
 
       const base = db
         .select({
@@ -260,14 +249,7 @@ export const onboardingRoutes = new Elysia({ prefix: "/api/onboarding" })
         .leftJoin(schools, eq(teacherProfiles.schoolId, schools.id))
         .limit(1);
 
-      const profile = parsedQuery.data.workspaceId
-        ? await base.where(
-            and(
-              eq(teacherProfiles.userId, parsedParams.data.userId),
-              eq(teacherProfiles.workspaceId, parsedQuery.data.workspaceId),
-            ),
-          )
-        : await base.where(eq(teacherProfiles.userId, parsedParams.data.userId));
+      const profile = await base.where(eq(teacherProfiles.userId, actor.userId));
 
       return { profile: profile[0] ?? null };
     }

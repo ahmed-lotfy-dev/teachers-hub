@@ -26,7 +26,6 @@ export type InviteDetails = {
 
 export async function generateInvite(payload: {
   workspaceId: string
-  teacherUserId: string
   studentName?: string
 }): Promise<{ token: string; claimPath: string; expiresAt: string }> {
   const csrfToken = await getCsrfToken()

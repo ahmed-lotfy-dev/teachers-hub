@@ -22,6 +22,20 @@
       "when": 1771722687820,
       "tag": "0002_nifty_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771769500000,
+      "tag": "0003_auth_credentials_google_username",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771770200000,
+      "tag": "0004_silent_single_target_tests",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,3 @@
-export type TeacherSession = {
-  userId: string
-  email: string
-}
-
 export type School = {
   id: string
   name: string

@@ -1,12 +1,14 @@
 import { Elysia } from "elysia";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/db";
 import {
   testAttempts,
   tests,
+  workspaces,
   workspaceLearners,
 } from "../db/workspace-schema";
+import { requireAuthSession } from "../lib/auth-session";
 
 const actorTypeSchema = z.enum(["student", "parent"]);
 
@@ -27,6 +29,15 @@ const submitTestBodySchema = z.object({
   learnerId: z.string().min(1),
   actorType: actorTypeSchema,
   score: z.number().min(0).max(100).optional(),
+});
+const createTestBodySchema = z.object({
+  workspaceId: z.string().min(1),
+  title: z.string().min(2).max(160),
+  description: z.string().max(1000).optional(),
+  maxScore: z.number().int().min(1).max(1000).default(100),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+  targetLearnerId: z.string().min(1).optional(),
 });
 
 const testParamsSchema = z.object({
@@ -102,6 +113,85 @@ async function seedWorkspaceTestsIfEmpty(workspaceId: string): Promise<void> {
 }
 
 export const testRoutes = new Elysia({ prefix: "/api/tests" })
+  .post("/create", async ({ body, set, request }) => {
+    const actor = await requireAuthSession({ request, set });
+    if (!actor) return { error: "Unauthorized" };
+
+    const parsedBody = createTestBodySchema.safeParse(body);
+    if (!parsedBody.success) {
+      set.status = 400;
+      return { error: z.treeifyError(parsedBody.error) };
+    }
+    const payload = parsedBody.data;
+
+    const workspace = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(
+        and(
+          eq(workspaces.id, payload.workspaceId),
+          eq(workspaces.ownerUserId, actor.userId),
+        ),
+      )
+      .limit(1);
+
+    if (workspace.length === 0) {
+      set.status = 403;
+      return { error: "Workspace not found or not owned by teacher" };
+    }
+
+    if (payload.targetLearnerId) {
+      const learnerLink = await db
+        .select({ id: workspaceLearners.id })
+        .from(workspaceLearners)
+        .where(
+          and(
+            eq(workspaceLearners.workspaceId, payload.workspaceId),
+            eq(workspaceLearners.learnerId, payload.targetLearnerId),
+          ),
+        )
+        .limit(1);
+
+      if (learnerLink.length === 0) {
+        set.status = 400;
+        return { error: "Target learner is not linked to this workspace" };
+      }
+    }
+
+    const startsAt = payload.startsAt ? new Date(payload.startsAt) : null;
+    const endsAt = payload.endsAt ? new Date(payload.endsAt) : null;
+    if (startsAt && endsAt && endsAt < startsAt) {
+      set.status = 400;
+      return { error: "endsAt cannot be earlier than startsAt" };
+    }
+
+    const inserted = await db
+      .insert(tests)
+      .values({
+        id: crypto.randomUUID(),
+        workspaceId: payload.workspaceId,
+        targetLearnerId: payload.targetLearnerId ?? null,
+        title: payload.title.trim(),
+        description: payload.description?.trim() || null,
+        maxScore: String(payload.maxScore),
+        startsAt,
+        endsAt,
+        published: "true",
+        createdByUserId: actor.userId,
+      })
+      .returning({
+        id: tests.id,
+        workspaceId: tests.workspaceId,
+        targetLearnerId: tests.targetLearnerId,
+        title: tests.title,
+        description: tests.description,
+        maxScore: tests.maxScore,
+        startsAt: tests.startsAt,
+        endsAt: tests.endsAt,
+      });
+
+    return { test: inserted[0] };
+  })
   .get("/", async ({ query, set }) => {
     const parsedQuery = listTestsQuerySchema.safeParse(query);
     if (!parsedQuery.success) {
@@ -121,6 +211,7 @@ export const testRoutes = new Elysia({ prefix: "/api/tests" })
     const testRows = await db
       .select({
         id: tests.id,
+        targetLearnerId: tests.targetLearnerId,
         title: tests.title,
         description: tests.description,
         maxScore: tests.maxScore,
@@ -128,7 +219,12 @@ export const testRoutes = new Elysia({ prefix: "/api/tests" })
         endsAt: tests.endsAt,
       })
       .from(tests)
-      .where(eq(tests.workspaceId, payload.workspaceId))
+      .where(
+        and(
+          eq(tests.workspaceId, payload.workspaceId),
+          or(isNull(tests.targetLearnerId), eq(tests.targetLearnerId, payload.learnerId)),
+        ),
+      )
       .orderBy(asc(tests.createdAt));
 
     const attempts = await db

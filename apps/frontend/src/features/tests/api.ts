@@ -18,6 +18,7 @@ async function getCsrfToken(): Promise<string> {
 
 export type TestItem = {
   id: string
+  targetLearnerId?: string | null
   title: string
   description: string | null
   maxScore: string
@@ -104,4 +105,51 @@ export async function submitTest(payload: {
     const text = await response.text()
     throw new Error(text || 'Failed to submit test')
   }
+}
+
+export async function createTest(payload: {
+  workspaceId: string
+  title: string
+  description?: string
+  maxScore?: number
+  startsAt?: string
+  endsAt?: string
+  targetLearnerId?: string
+}): Promise<{
+  id: string
+  workspaceId: string
+  targetLearnerId: string | null
+  title: string
+  description: string | null
+  maxScore: string
+  startsAt: string | null
+  endsAt: string | null
+}> {
+  const csrfToken = await getCsrfToken()
+  const response = await fetch(`${API_BASE}/api/tests/create`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || 'Failed to create test')
+  }
+  const data = (await response.json()) as {
+    test: {
+      id: string
+      workspaceId: string
+      targetLearnerId: string | null
+      title: string
+      description: string | null
+      maxScore: string
+      startsAt: string | null
+      endsAt: string | null
+    }
+  }
+  return data.test
 }

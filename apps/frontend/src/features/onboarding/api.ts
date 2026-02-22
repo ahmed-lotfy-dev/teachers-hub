@@ -33,7 +33,6 @@ export async function searchSchools(query: string): Promise<School[]> {
 }
 
 export async function createSchool(payload: {
-  userId: string
   name: string
 }): Promise<School> {
   const csrfToken = await getCsrfToken()
@@ -56,7 +55,6 @@ export async function createSchool(payload: {
 }
 
 export async function saveTeacherOnboarding(payload: {
-  userId: string
   displayName: string
   gradeLevels: string[]
   schoolId?: string

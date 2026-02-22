@@ -121,6 +121,7 @@ export const tests = pgTable(
   {
     id: text("id").primaryKey(),
     workspaceId: text("workspace_id").notNull(),
+    targetLearnerId: text("target_learner_id"),
     title: text("title").notNull(),
     description: text("description"),
     maxScore: text("max_score").notNull().default("100"),
