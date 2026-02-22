@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchTeacherProfile } from '../auth/api'
 import { clearSession, getSession } from '../auth/session'
 import type { TeacherProfile } from '../auth/types'
 import { appShellClass } from '../../ui/layout'
 import { buildWhatsAppShareUrl } from './whatsapp'
+import { generateInvite } from '../invites/api'
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -12,8 +13,18 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [studentName, setStudentName] = useState('')
-  const [inviteLink, setInviteLink] = useState('')
+  const [inviteToken, setInviteToken] = useState('')
+  const [inviteMessage, setInviteMessage] = useState(
+    "Hello! This is your teacher from Teachers Hub.\n\nPlease use this secure invite link to join class:",
+  )
   const [shareNote, setShareNote] = useState<string | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const inviteLink = useMemo(() => {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    return inviteToken ? `${origin}/invite/${inviteToken}` : ''
+  }, [inviteToken])
 
   useEffect(() => {
     const session = getSession()
@@ -62,22 +73,43 @@ export function DashboardPage() {
   }
 
   function shareInviteOnWhatsApp() {
-    const safeLink = inviteLink.trim()
-    if (!safeLink) {
-      setShareNote('Add an invite link first.')
+    if (!inviteLink) {
+      setShareNote('Generate an invite link first.')
       return
     }
 
     const targetName = studentName.trim() || 'your child'
     const message =
-      `Hello! This is your teacher from Teachers Hub.\n\n` +
-      `Please use this secure invite to join class for ${targetName}:\n` +
-      `${safeLink}\n\n` +
+      `${inviteMessage.trim()}\n` +
+      `${inviteLink}\n\n` +
+      `Student: ${targetName}\n` +
       `If you have any issue opening the link, please reply here.`
 
     const shareUrl = buildWhatsAppShareUrl(message)
     window.open(shareUrl, '_blank', 'noopener,noreferrer')
     setShareNote('Opened WhatsApp share. Please send from your own account.')
+  }
+
+  async function generateInviteLink() {
+    if (!profile) return
+
+    setInviteError(null)
+    setShareNote(null)
+    setInviteLoading(true)
+    try {
+      const created = await generateInvite({
+        workspaceId: profile.workspaceId,
+        teacherUserId: profile.userId,
+        studentName: studentName.trim() || undefined,
+      })
+      setInviteToken(created.token)
+    } catch (error) {
+      setInviteError(
+        error instanceof Error ? error.message : 'Failed to generate invite link',
+      )
+    } finally {
+      setInviteLoading(false)
+    }
   }
 
   return (
@@ -157,8 +189,8 @@ export function DashboardPage() {
             Share Invite On WhatsApp
           </h3>
           <p className="mt-2 text-slate-700">
-            This opens WhatsApp so you can send from your own account. No automated
-            sending is used.
+            Invite link is generated automatically. Edit your message, then share from
+            your own WhatsApp account.
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -174,19 +206,32 @@ export function DashboardPage() {
             </label>
 
             <label className="grid gap-2 md:col-span-2">
-              <span className="font-semibold text-slate-700">Invite Link</span>
-              <input
-                type="url"
-                required
-                value={inviteLink}
-                onChange={(event) => setInviteLink(event.target.value)}
-                placeholder="https://teachershub.app/invite/abc123"
-                className="min-h-11 rounded-xl border-2 border-sky-200 bg-white px-3 outline-none focus:border-cyan-500"
+              <span className="font-semibold text-slate-700">Invite Message</span>
+              <textarea
+                value={inviteMessage}
+                onChange={(event) => setInviteMessage(event.target.value)}
+                rows={4}
+                className="w-full rounded-xl border-2 border-sky-200 bg-white px-3 py-2 outline-none focus:border-cyan-500"
               />
             </label>
+
+            <div className="grid gap-2 md:col-span-2">
+              <span className="font-semibold text-slate-700">Generated Invite Link</span>
+              <div className="rounded-xl border-2 border-sky-200 bg-slate-50 px-3 py-2 break-all text-sm text-slate-800">
+                {inviteLink || 'No invite generated yet.'}
+              </div>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={generateInviteLink}
+              disabled={inviteLoading}
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border-2 border-sky-200 bg-white px-4 py-2 text-base font-bold text-slate-900 hover:-translate-y-0.5 transition-transform duration-200"
+            >
+              {inviteLoading ? 'Generating...' : 'Generate New Link'}
+            </button>
             <button
               type="button"
               onClick={shareInviteOnWhatsApp}
@@ -196,6 +241,9 @@ export function DashboardPage() {
             </button>
           </div>
 
+          {inviteError ? (
+            <p className="mt-3 text-sm font-semibold text-red-700">{inviteError}</p>
+          ) : null}
           {shareNote ? (
             <p className="mt-3 text-sm font-semibold text-cyan-900">{shareNote}</p>
           ) : null}

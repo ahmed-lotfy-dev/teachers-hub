@@ -8,6 +8,8 @@ import { logger } from "./middleware/logger";
 import { csrfProtection } from "./middleware/csrf";
 import { securityHeaders } from "./middleware/security-headers";
 import { onboardingRoutes } from "./routes/onboarding";
+import { inviteRoutes } from "./routes/invites";
+import { testRoutes } from "./routes/tests";
 
 const app = new Elysia()
   .use(logger)
@@ -44,6 +46,8 @@ const app = new Elysia()
   .use(csrfProtection)
   .mount(auth.handler)
   .use(onboardingRoutes)
+  .use(inviteRoutes)
+  .use(testRoutes)
   .get("/health", () => ({ status: "ok" }))
   .get("/", () => "Teachers Hub backend running")
   .use(mcpPlugin)
