@@ -22,7 +22,7 @@ function tokensMatch(a: string, b: string): boolean {
 
 function shouldUseSecureCookies(): boolean {
   return (
-    process.env.BETTER_AUTH_URL?.startsWith("https://") &&
+    !!process.env.BETTER_AUTH_URL?.startsWith("https://") &&
     process.env.NODE_ENV === "production"
   );
 }
