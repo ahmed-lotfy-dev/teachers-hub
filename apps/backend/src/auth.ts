@@ -10,8 +10,6 @@ import {
   verificationTokens,
 } from "./db/auth-schema";
 
-const githubClientId = process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -36,14 +34,6 @@ const authTrustedOrigins = Array.from(
 );
 
 const socialProviders = {
-  ...(githubClientId && githubClientSecret
-    ? {
-        github: {
-          clientId: githubClientId,
-          clientSecret: githubClientSecret,
-        },
-      }
-    : {}),
   ...(googleClientId && googleClientSecret
     ? {
         google: {

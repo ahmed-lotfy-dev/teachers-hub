@@ -12,7 +12,7 @@ export const securityHeaders = new Elysia({ name: "security-headers" }).onAfterH
       "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
 
     const path = new URL(request.url).pathname;
-    if (!path.startsWith("/docs")) {
+    if (!path.startsWith("/api/docs")) {
       set.headers["Content-Security-Policy"] = CSP_NON_DOCS;
     }
   },

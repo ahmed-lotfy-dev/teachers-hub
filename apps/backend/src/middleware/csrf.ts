@@ -50,7 +50,12 @@ export const csrfProtection = new Elysia({ name: "csrf-protection" })
     if (SAFE_METHODS.has(request.method)) return;
 
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/auth") || url.pathname === "/api/csrf") {
+    if (
+      url.pathname.startsWith("/api/auth") ||
+      url.pathname.startsWith("/api/v1/auth") ||
+      url.pathname === "/api/csrf" ||
+      url.pathname === "/api/v1/csrf"
+    ) {
       return;
     }
 
