@@ -7,9 +7,8 @@ export function resolveApiBase(): string {
   if (fromEnv) return trimTrailingSlash(fromEnv);
 
   if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:8000`;
+    return window.location.origin;
   }
 
-  return "http://localhost:8000";
+  return "";
 }

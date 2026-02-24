@@ -45,7 +45,7 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   return { user: data.user }
 }
 
-export async function signInWithSocial(provider: 'github' | 'google'): Promise<void> {
+export async function signInWithSocial(provider: 'google'): Promise<void> {
   const callbackURL =
     typeof window !== 'undefined'
       ? `${window.location.origin}/signin`

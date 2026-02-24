@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { fetchTeacherProfile } from './api'
 import {
   getAuthSession,
@@ -17,8 +18,9 @@ type CredentialsMode = 'email' | 'username'
 
 export function SignInPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [checkingSession, setCheckingSession] = useState(true)
-  const [socialLoading, setSocialLoading] = useState<null | 'github' | 'google'>(null)
+  const [socialLoading, setSocialLoading] = useState<null | 'google'>(null)
   const [submittingCredential, setSubmittingCredential] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [credentialsMode, setCredentialsMode] = useState<CredentialsMode>('email')
@@ -34,8 +36,10 @@ export function SignInPage() {
     getAuthSession()
       .then(async (session) => {
         if (!session) return
+        queryClient.setQueryData(['auth', 'session'], session)
 
         const profile = await fetchTeacherProfile()
+        queryClient.setQueryData(['teacher', 'profile'], profile)
         navigate(profile ? '/dashboard' : '/onboarding', { replace: true })
       })
       .catch(() => {
@@ -44,14 +48,17 @@ export function SignInPage() {
       .finally(() => {
         setCheckingSession(false)
       })
-  }, [navigate])
+  }, [navigate, queryClient])
 
   async function continueAfterAuth() {
     const profile = await fetchTeacherProfile()
+    const session = await getAuthSession()
+    queryClient.setQueryData(['auth', 'session'], session)
+    queryClient.setQueryData(['teacher', 'profile'], profile)
     navigate(profile ? '/dashboard' : '/onboarding', { replace: true })
   }
 
-  async function handleSocial(provider: 'github' | 'google') {
+  async function handleSocial(provider: 'google') {
     setError(null)
     setSocialLoading(provider)
     try {
@@ -105,7 +112,7 @@ export function SignInPage() {
             <p className="font-bold tracking-wide text-cyan-800">Teacher Sign In</p>
             <CardTitle className="mt-1">Welcome Back</CardTitle>
             <CardDescription className="mt-2">
-              Sign in with Google/GitHub or use credentials (email/password or username/password).
+              Sign in with Google or use credentials (email/password or username/password).
             </CardDescription>
           </CardHeader>
 
@@ -117,14 +124,6 @@ export function SignInPage() {
                 disabled={checkingSession || socialLoading !== null || submittingCredential}
               >
                 {socialLoading === 'google' ? 'Redirecting...' : 'Continue With Google'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void handleSocial('github')}
-                disabled={checkingSession || socialLoading !== null || submittingCredential}
-              >
-                {socialLoading === 'github' ? 'Redirecting...' : 'Continue With GitHub'}
               </Button>
             </div>
 
